@@ -1,7 +1,7 @@
 # Bu kod, MACD, RSI ve Bollinger Bands kombinasyonuna dayalı güçlü bir teknik analiz stratejisi kullanır.
 # Alış sinyali: MACD hattı sinyal hattını yukarı keser VE RSI < 30 (oversold) VE Fiyat alt Bollinger Band'ın altında.
 # Satış sinyali: MACD hattı sinyal hattını aşağı keser VE RSI > 70 (overbought) VE Fiyat üst Bollinger Band'ın üstünde.
-# Telegram'a mesaj gönderir.
+# Telegram'a mesaj gönderir - sadece sinyal (değişim) varsa.
 
 import yfinance as yf
 import pandas as pd
@@ -11,6 +11,8 @@ from ta.volatility import BollingerBands
 import requests
 import os
 import time
+from datetime import datetime
+import pytz  # Türkiye saati için
 
 # Telegram mesaj gönderme fonksiyonu
 def send_telegram_message(message):
@@ -72,12 +74,12 @@ def get_signals(tickers):
             bb_high = data['BB_High'].iloc[-1]
             bb_low = data['BB_Low'].iloc[-1]
             
-            # Alış sinyali
-            if (macd_prev <= macd_signal_prev and macd_now > macd_signal_now) and (rsi_now < 30) and (close < bb_low):
+            # Alış sinyali (gevşetildi: RSI < 35)
+            if (macd_prev <= macd_signal_prev and macd_now > macd_signal_now) and (rsi_now < 35) and (close < bb_low):
                 signals[ticker] = f"Alış Sinyali - Fiyat: ${close:.2f}, RSI: {rsi_now:.2f}"
             
-            # Satış sinyali
-            elif (macd_prev >= macd_signal_prev and macd_now < macd_signal_now) and (rsi_now > 70) and (close > bb_high):
+            # Satış sinyali (gevşetildi: RSI > 65)
+            elif (macd_prev >= macd_signal_prev and macd_now < macd_signal_now) and (rsi_now > 65) and (close > bb_high):
                 signals[ticker] = f"Satış Sinyali - Fiyat: ${close:.2f}, RSI: {rsi_now:.2f}"
         
         except Exception as e:
@@ -87,16 +89,19 @@ def get_signals(tickers):
 
 # Ana fonksiyon
 def main():
-    tickers = ['BTC-USD', 'ETH-USD', 'SOL-USD']  # İstenirse başka coinler eklenebilir
+    tickers = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'ADA-USD', 'XRP-USD', 'DOGE-USD', 'BNB-USD', 'AVAX-USD', 'LINK-USD', 'DOT-USD']  # Daha fazla coin eklendi: AVAX, LINK, DOT
     signals = get_signals(tickers)
     
-    if signals:
-        message = f"Teknik Analiz Sinyalleri ({time.strftime('%Y-%m-%d %H:%M:%S')}):\n"
+    # Türkiye saati ayarı (UTC+3)
+    tz_tr = pytz.timezone('Europe/Istanbul')
+    current_time = datetime.now(tz_tr).strftime('%Y-%m-%d %H:%M:%S')
+    
+    if signals:  # Sadece sinyal (değişim) varsa mesaj gönder
+        message = f"Teknik Analiz Sinyalleri ({current_time}):\n"
         for ticker, signal in signals.items():
             message += f"{ticker}: {signal}\n"
         send_telegram_message(message)
-    else:
-        send_telegram_message(f"Şu an için sinyal yok ({time.strftime('%Y-%m-%d %H:%M:%S')}).")
+    # Sinyal yoksa mesaj gönderme - sessiz kal
 
 # GitHub Actions için giriş noktası
 if __name__ == "__main__":
