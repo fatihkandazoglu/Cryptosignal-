@@ -2,7 +2,7 @@ name: Crypto Signal Bot
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Her saat başı (UTC), mesajda TR saati gösterilir
+    - cron: '0,30 * * * *'  # Her 30 dakikada bir (UTC), daha sık kontrol
   workflow_dispatch:
 
 jobs:
